@@ -13,6 +13,7 @@ export default function OrderSuccess() {
 
 }
 
+
 function OrderSuccessContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -21,7 +22,9 @@ function OrderSuccessContent() {
 
   useEffect(() => {
     const orderId = params.get('orderId');
+    console.log('OrderSuccessContent: orderId from params:', orderId);
     if (!orderId) {
+      console.error('OrderSuccessContent: orderId missing, redirecting to home.');
       router.replace('/');
       return;
     }
@@ -48,9 +51,6 @@ function OrderSuccessContent() {
       setLoading(false);
     }
   };
-
-  if (loading) return <Loading />;
-  if (!orders || orders.length === 0) return <div className='p-8 text-center text-red-600'>Order not found or failed.</div>;
 
   // Use first order for summary
   const order = orders && orders.length > 0 ? orders[0] : null;
@@ -86,71 +86,80 @@ function OrderSuccessContent() {
     }
   }, [order, total, currency]);
 
+  // Render logic moved inside returned JSX to avoid early returns
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col items-center justify-center py-8'>
-      <div className='max-w-2xl w-full bg-white rounded-xl shadow p-8'>
-        <div className='text-center mb-8'>
-          <div className='flex flex-col items-center gap-2'>
-            <span className='text-green-600 text-2xl'>✔️</span>
-            <h2 className='text-2xl font-bold text-green-700'>Thank you</h2>
-            <p className='text-gray-500'>Your order has been received.</p>
+    <>
+      {loading ? (
+        <Loading />
+      ) : !orders || orders.length === 0 ? (
+        <div className='p-8 text-center text-red-600'>Order not found or failed.</div>
+      ) : (
+        <div className='min-h-screen bg-gray-50 flex flex-col items-center justify-center py-8'>
+          <div className='max-w-2xl w-full bg-white rounded-xl shadow p-8'>
+            <div className='text-center mb-8'>
+              <div className='flex flex-col items-center gap-2'>
+                <span className='text-green-600 text-2xl'>✔️</span>
+                <h2 className='text-2xl font-bold text-green-700'>Thank you</h2>
+                <p className='text-gray-500'>Your order has been received.</p>
+              </div>
+            </div>
+            <div className='bg-gray-100 rounded-lg py-6 mb-8 text-center'>
+              <div className='text-sm text-gray-500 mb-2'>Order no.</div>
+              <div className='text-3xl font-bold text-red-600 mb-2'>
+                {getOrderNumber(order?.id)}
+              </div>
+              <button className='text-xs text-gray-400 hover:text-gray-600' onClick={() => navigator.clipboard.writeText(getOrderNumber(order?.id))}>Copy order number</button>
+            </div>
+            <div className='flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-lg p-4 mb-8 gap-4'>
+              <div className='text-sm'>
+                <div><span className='font-semibold'>Order no.:</span> {getOrderNumber(order?.id)}</div>
+                <div><span className='font-semibold'>Order date:</span> {orderDate}</div>
+              </div>
+              <div className='text-sm'>
+                <div><span className='font-semibold'>Total:</span> {currency} {total.toLocaleString()}</div>
+                <div><span className='font-semibold'>Payment method:</span> {order?.paymentMethod || 'COD'}</div>
+              </div>
+            </div>
+            <div className='bg-gray-50 rounded-lg p-4'>
+              <div className='mb-4 text-lg font-semibold'>Order summary</div>
+              <table className='w-full text-sm mb-4'>
+                <thead>
+                  <tr className='border-b'>
+                    <th className='text-left py-2'>Product</th>
+                    <th className='text-right py-2'>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(item => (
+                    <tr key={item.productId} className='border-b'>
+                      <td className='py-2 flex items-center gap-3'>
+                        {item.product?.images?.[0] && (
+                          <img src={item.product.images[0]} alt={item.product.name} className='w-12 h-12 rounded object-cover border' />
+                        )}
+                        <span>{item.product?.name}</span>
+                      </td>
+                      <td className='py-2 text-right'>{currency} {(item.price * item.quantity).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className='grid grid-cols-2 gap-2 text-sm mb-2'>
+                <div className='text-gray-600'>Items</div>
+                <div className='text-right'>{currency} {subtotal.toLocaleString()}</div>
+                <div className='text-gray-600'>Discount</div>
+                <div className='text-right'>-{currency} {discount ? discount.toLocaleString() : '0'}</div>
+                <div className='text-gray-600'>Shipping &amp; handling</div>
+                <div className='text-right'>{currency} {shipping.toLocaleString()}</div>
+                <div className='font-semibold text-gray-900'>Total</div>
+                <div className='font-semibold text-right'>{currency} {total.toLocaleString()}</div>
+              </div>
+            </div>
+            <div className='text-center mt-8'>
+              <button className='bg-orange-500 text-white px-6 py-2 rounded-lg font-bold' onClick={() => router.push('/')}>Continue Shopping</button>
+            </div>
           </div>
         </div>
-        <div className='bg-gray-100 rounded-lg py-6 mb-8 text-center'>
-          <div className='text-sm text-gray-500 mb-2'>Order no.</div>
-          <div className='text-3xl font-bold text-red-600 mb-2'>
-            {getOrderNumber(order?.id)}
-          </div>
-          <button className='text-xs text-gray-400 hover:text-gray-600' onClick={() => navigator.clipboard.writeText(getOrderNumber(order?.id))}>Copy order number</button>
-        </div>
-        <div className='flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-lg p-4 mb-8 gap-4'>
-          <div className='text-sm'>
-            <div><span className='font-semibold'>Order no.:</span> {getOrderNumber(order?.id)}</div>
-            <div><span className='font-semibold'>Order date:</span> {orderDate}</div>
-          </div>
-          <div className='text-sm'>
-            <div><span className='font-semibold'>Total:</span> {currency} {total.toLocaleString()}</div>
-            <div><span className='font-semibold'>Payment method:</span> {order?.paymentMethod || 'COD'}</div>
-          </div>
-        </div>
-        <div className='bg-gray-50 rounded-lg p-4'>
-          <div className='mb-4 text-lg font-semibold'>Order summary</div>
-          <table className='w-full text-sm mb-4'>
-            <thead>
-              <tr className='border-b'>
-                <th className='text-left py-2'>Product</th>
-                <th className='text-right py-2'>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map(item => (
-                <tr key={item.productId} className='border-b'>
-                  <td className='py-2 flex items-center gap-3'>
-                    {item.product?.images?.[0] && (
-                      <img src={item.product.images[0]} alt={item.product.name} className='w-12 h-12 rounded object-cover border' />
-                    )}
-                    <span>{item.product?.name}</span>
-                  </td>
-                  <td className='py-2 text-right'>{currency} {(item.price * item.quantity).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className='grid grid-cols-2 gap-2 text-sm mb-2'>
-            <div className='text-gray-600'>Items</div>
-            <div className='text-right'>{currency} {subtotal.toLocaleString()}</div>
-            <div className='text-gray-600'>Discount</div>
-            <div className='text-right'>-{currency} {discount ? discount.toLocaleString() : '0'}</div>
-            <div className='text-gray-600'>Shipping &amp; handling</div>
-            <div className='text-right'>{currency} {shipping.toLocaleString()}</div>
-            <div className='font-semibold text-gray-900'>Total</div>
-            <div className='font-semibold text-right'>{currency} {total.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className='text-center mt-8'>
-          <button className='bg-orange-500 text-white px-6 py-2 rounded-lg font-bold' onClick={() => router.push('/')}>Continue Shopping</button>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
